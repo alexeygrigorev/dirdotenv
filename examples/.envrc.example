@@ -1,0 +1,9 @@
+# Example .envrc file
+export OPENAI_API_KEY='my-secret-key'
+export DATABASE_URL="postgres://localhost:5432/mydb"
+export API_PORT=8080
+export DEBUG=true
+
+# Redis configuration
+export REDIS_HOST=localhost
+export REDIS_PORT=6379

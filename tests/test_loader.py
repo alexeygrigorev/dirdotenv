@@ -1,0 +1,266 @@
+"""Tests for directory-aware environment loading with inheritance."""
+
+import os
+import tempfile
+import sys
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from dirdotenv.loader import (
+    find_env_files_in_tree,
+    load_env_with_inheritance,
+    get_loaded_keys,
+    get_unloaded_keys,
+    format_export_commands,
+    format_unset_commands,
+    format_message
+)
+
+
+def test_find_env_files_in_tree_single_dir():
+    """Test finding env files in a single directory."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Create .env file
+        env_file = os.path.join(tmpdir, '.env')
+        with open(env_file, 'w') as f:
+            f.write("TEST=value\n")
+        
+        result = find_env_files_in_tree(tmpdir)
+        assert len(result) == 1
+        assert tmpdir in result
+
+
+def test_find_env_files_in_tree_nested():
+    """Test finding env files in nested directories."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Create parent .env
+        parent_env = os.path.join(tmpdir, '.env')
+        with open(parent_env, 'w') as f:
+            f.write("PARENT=value\n")
+        
+        # Create child directory with .env
+        child_dir = os.path.join(tmpdir, 'child')
+        os.makedirs(child_dir)
+        child_env = os.path.join(child_dir, '.env')
+        with open(child_env, 'w') as f:
+            f.write("CHILD=value\n")
+        
+        result = find_env_files_in_tree(child_dir)
+        assert len(result) == 2
+        assert tmpdir == result[0]  # Parent first
+        assert child_dir == result[1]  # Child second
+
+
+def test_find_env_files_in_tree_no_files():
+    """Test finding env files when none exist."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        result = find_env_files_in_tree(tmpdir)
+        assert len(result) == 0
+
+
+def test_load_env_with_inheritance_single_dir():
+    """Test loading from single directory."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        env_file = os.path.join(tmpdir, '.env')
+        with open(env_file, 'w') as f:
+            f.write("KEY1=value1\n")
+            f.write("KEY2=value2\n")
+        
+        env_vars, dirs = load_env_with_inheritance(tmpdir)
+        assert env_vars == {'KEY1': 'value1', 'KEY2': 'value2'}
+        assert len(dirs) == 1
+
+
+def test_load_env_with_inheritance_parent_child():
+    """Test loading with parent and child directories."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Parent .env
+        parent_env = os.path.join(tmpdir, '.env')
+        with open(parent_env, 'w') as f:
+            f.write("PARENT_KEY=parent_value\n")
+            f.write("SHARED_KEY=parent_value\n")
+        
+        # Child .env
+        child_dir = os.path.join(tmpdir, 'child')
+        os.makedirs(child_dir)
+        child_env = os.path.join(child_dir, '.env')
+        with open(child_env, 'w') as f:
+            f.write("CHILD_KEY=child_value\n")
+            f.write("SHARED_KEY=child_value\n")  # Override parent
+        
+        env_vars, dirs = load_env_with_inheritance(child_dir)
+        assert env_vars['PARENT_KEY'] == 'parent_value'
+        assert env_vars['CHILD_KEY'] == 'child_value'
+        assert env_vars['SHARED_KEY'] == 'child_value'  # Child overrides parent
+        assert len(dirs) == 2
+
+
+def test_load_env_with_inheritance_grandparent():
+    """Test loading with grandparent, parent, and child directories."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Grandparent .env
+        grandparent_env = os.path.join(tmpdir, '.env')
+        with open(grandparent_env, 'w') as f:
+            f.write("GRAND=grand_value\n")
+            f.write("OVERRIDE=grand_value\n")
+        
+        # Parent .env
+        parent_dir = os.path.join(tmpdir, 'parent')
+        os.makedirs(parent_dir)
+        parent_env = os.path.join(parent_dir, '.env')
+        with open(parent_env, 'w') as f:
+            f.write("PARENT=parent_value\n")
+            f.write("OVERRIDE=parent_value\n")
+        
+        # Child .env
+        child_dir = os.path.join(parent_dir, 'child')
+        os.makedirs(child_dir)
+        child_env = os.path.join(child_dir, '.env')
+        with open(child_env, 'w') as f:
+            f.write("CHILD=child_value\n")
+            f.write("OVERRIDE=child_value\n")
+        
+        env_vars, dirs = load_env_with_inheritance(child_dir)
+        assert env_vars['GRAND'] == 'grand_value'
+        assert env_vars['PARENT'] == 'parent_value'
+        assert env_vars['CHILD'] == 'child_value'
+        assert env_vars['OVERRIDE'] == 'child_value'  # Child wins
+        assert len(dirs) == 3
+
+
+def test_load_env_with_inheritance_subdirectory_no_env():
+    """Test subdirectory without .env inherits from parent."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Parent .env
+        parent_env = os.path.join(tmpdir, '.env')
+        with open(parent_env, 'w') as f:
+            f.write("PARENT_KEY=parent_value\n")
+        
+        # Child directory without .env
+        child_dir = os.path.join(tmpdir, 'child')
+        os.makedirs(child_dir)
+        
+        env_vars, dirs = load_env_with_inheritance(child_dir)
+        assert env_vars == {'PARENT_KEY': 'parent_value'}
+        assert len(dirs) == 1  # Only parent has env file
+
+
+def test_get_loaded_keys():
+    """Test identifying loaded/changed keys."""
+    old_vars = {'KEY1': 'old_value', 'KEY2': 'value2'}
+    new_vars = {'KEY1': 'new_value', 'KEY2': 'value2', 'KEY3': 'value3'}
+    
+    loaded = get_loaded_keys(old_vars, new_vars)
+    assert 'KEY1' in loaded  # Changed
+    assert 'KEY2' not in loaded  # Unchanged
+    assert 'KEY3' in loaded  # New
+
+
+def test_get_unloaded_keys():
+    """Test identifying unloaded keys."""
+    old_vars = {'KEY1': 'value1', 'KEY2': 'value2', 'KEY3': 'value3'}
+    new_vars = {'KEY1': 'value1', 'KEY3': 'value3'}
+    
+    unloaded = get_unloaded_keys(old_vars, new_vars)
+    assert 'KEY2' in unloaded
+    assert 'KEY1' not in unloaded
+    assert 'KEY3' not in unloaded
+
+
+def test_format_export_commands_bash():
+    """Test formatting export commands for bash."""
+    env_vars = {'KEY1': 'value1', 'KEY2': "value's"}
+    result = format_export_commands(env_vars, 'bash')
+    assert "export KEY1='value1'" in result
+    assert "export KEY2='value'\\''s'" in result
+
+
+def test_format_export_commands_fish():
+    """Test formatting export commands for fish."""
+    env_vars = {'KEY1': 'value1'}
+    result = format_export_commands(env_vars, 'fish')
+    assert "set -gx KEY1 'value1'" in result
+
+
+def test_format_export_commands_powershell():
+    """Test formatting export commands for PowerShell."""
+    env_vars = {'KEY1': 'value1', 'KEY2': "value's"}
+    result = format_export_commands(env_vars, 'powershell')
+    assert "$env:KEY1 = 'value1'" in result
+    assert "$env:KEY2 = 'value''s'" in result
+
+
+def test_format_unset_commands_bash():
+    """Test formatting unset commands for bash."""
+    keys = {'KEY1', 'KEY2'}
+    result = format_unset_commands(keys, 'bash')
+    assert 'unset KEY1' in result
+    assert 'unset KEY2' in result
+
+
+def test_format_unset_commands_fish():
+    """Test formatting unset commands for fish."""
+    keys = {'KEY1'}
+    result = format_unset_commands(keys, 'fish')
+    assert 'set -e KEY1' in result
+
+
+def test_format_unset_commands_powershell():
+    """Test formatting unset commands for PowerShell."""
+    keys = {'KEY1'}
+    result = format_unset_commands(keys, 'powershell')
+    assert 'Remove-Item Env:KEY1' in result
+
+
+def test_format_message_bash():
+    """Test formatting messages for bash."""
+    result = format_message('test message', 'bash')
+    assert "echo 'test message' >&2" in result
+
+
+def test_format_message_powershell():
+    """Test formatting messages for PowerShell."""
+    result = format_message('test message', 'powershell')
+    assert "Write-Host 'test message'" in result
+
+
+if __name__ == '__main__':
+    # Run all tests
+    test_functions = [
+        test_find_env_files_in_tree_single_dir,
+        test_find_env_files_in_tree_nested,
+        test_find_env_files_in_tree_no_files,
+        test_load_env_with_inheritance_single_dir,
+        test_load_env_with_inheritance_parent_child,
+        test_load_env_with_inheritance_grandparent,
+        test_load_env_with_inheritance_subdirectory_no_env,
+        test_get_loaded_keys,
+        test_get_unloaded_keys,
+        test_format_export_commands_bash,
+        test_format_export_commands_fish,
+        test_format_export_commands_powershell,
+        test_format_unset_commands_bash,
+        test_format_unset_commands_fish,
+        test_format_unset_commands_powershell,
+        test_format_message_bash,
+        test_format_message_powershell,
+    ]
+    
+    passed = 0
+    failed = 0
+    
+    for test_func in test_functions:
+        try:
+            test_func()
+            print(f"✓ {test_func.__name__}")
+            passed += 1
+        except AssertionError as e:
+            print(f"✗ {test_func.__name__}: {e}")
+            failed += 1
+        except Exception as e:
+            print(f"✗ {test_func.__name__}: {type(e).__name__}: {e}")
+            failed += 1
+    
+    print(f"\n{passed} passed, {failed} failed")
+    sys.exit(0 if failed == 0 else 1)

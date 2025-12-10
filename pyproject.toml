@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dirdotenv"
+version = "0.1.0"
+description = "Like direnv, but works with both .envrc and .env files"
+readme = "README.md"
+requires-python = ">=3.7"
+authors = [
+    {name = "Alexey Grigorev"}
+]
+keywords = ["environment", "variables", "env", "envrc", "direnv", "dotenv"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Build Tools",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.urls]
+Homepage = "https://github.com/alexeygrigorev/dirdotenv"
+Repository = "https://github.com/alexeygrigorev/dirdotenv"
+
+[project.scripts]
+dirdotenv = "dirdotenv.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["dirdotenv*"]
+exclude = ["tests*", "examples*", "shell_integration*"]
