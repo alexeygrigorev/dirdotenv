@@ -3,9 +3,6 @@
 # Add this to your ~/.bashrc:
 #   source /path/to/dirdotenv/shell_integration/dirdotenv.bash
 
-# Store the original PROMPT_COMMAND
-_dirdotenv_original_prompt_command="$PROMPT_COMMAND"
-
 # Function to load environment variables from .env or .envrc
 _dirdotenv_load() {
     # Check if we're in a different directory
@@ -16,8 +13,11 @@ _dirdotenv_load() {
         if [[ -f ".env" ]] || [[ -f ".envrc" ]]; then
             # Check if dirdotenv command is available
             if command -v dirdotenv &> /dev/null; then
-                # Load the environment variables
-                eval "$(dirdotenv)"
+                # Load the environment variables with error handling
+                local output
+                if output=$(dirdotenv 2>&1); then
+                    eval "$output"
+                fi
             fi
         fi
     fi

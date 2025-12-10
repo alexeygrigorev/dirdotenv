@@ -9,8 +9,11 @@ function _dirdotenv_load --on-variable PWD
     if test -f ".env" -o -f ".envrc"
         # Check if dirdotenv command is available
         if command -v dirdotenv > /dev/null 2>&1
-            # Load the environment variables
-            eval (dirdotenv --shell fish)
+            # Load the environment variables with error handling
+            set -l output (dirdotenv --shell fish 2>&1)
+            if test $status -eq 0
+                eval $output
+            end
         end
     end
 end
