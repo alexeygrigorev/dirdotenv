@@ -5,9 +5,6 @@ import subprocess
 import tempfile
 import sys
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-
 
 def test_cli_with_env_file():
     """Test CLI with .env file."""
@@ -18,7 +15,7 @@ def test_cli_with_env_file():
             f.write('API_PORT=8080\n')
         
         result = subprocess.run(
-            ['dirdotenv', tmpdir],
+            [sys.executable, '-m', 'dirdotenv', tmpdir, '--export'],
             capture_output=True,
             text=True
         )
@@ -37,7 +34,7 @@ def test_cli_with_envrc_file():
             f.write('export API_PORT=8080\n')
         
         result = subprocess.run(
-            ['dirdotenv', tmpdir],
+            [sys.executable, '-m', 'dirdotenv', tmpdir, '--export'],
             capture_output=True,
             text=True
         )
@@ -54,8 +51,10 @@ def test_cli_exec():
         with open(env_file, 'w') as f:
             f.write("TEST_VAR='test-value'\n")
         
+        # Use Python for cross-platform compatibility
         result = subprocess.run(
-            ['dirdotenv', tmpdir, '--exec', 'sh', '-c', 'echo $TEST_VAR'],
+            [sys.executable, '-m', 'dirdotenv', tmpdir, '--exec', 
+             sys.executable, '-c', 'import os; print(os.environ.get("TEST_VAR"))'],
             capture_output=True,
             text=True
         )
@@ -65,41 +64,26 @@ def test_cli_exec():
 
 
 def test_cli_empty_directory():
-    """Test CLI with empty directory."""
+    """Test CLI with empty directory (should show help)."""
     with tempfile.TemporaryDirectory() as tmpdir:
         result = subprocess.run(
-            ['dirdotenv', tmpdir],
+            [sys.executable, '-m', 'dirdotenv', tmpdir],
             capture_output=True,
             text=True
         )
         
         assert result.returncode == 0
-        assert "No environment variables found" in result.stderr
+        assert "usage:" in result.stdout or "usage:" in result.stderr
 
 
-if __name__ == '__main__':
-    # Run all tests
-    test_functions = [
-        test_cli_with_env_file,
-        test_cli_with_envrc_file,
-        test_cli_exec,
-        test_cli_empty_directory,
-    ]
+def test_cli_help():
+    """Test CLI help output."""
+    result = subprocess.run(
+        [sys.executable, '-m', 'dirdotenv'],
+        capture_output=True,
+        text=True
+    )
     
-    passed = 0
-    failed = 0
-    
-    for test_func in test_functions:
-        try:
-            test_func()
-            print(f"✓ {test_func.__name__}")
-            passed += 1
-        except AssertionError as e:
-            print(f"✗ {test_func.__name__}: {e}")
-            failed += 1
-        except Exception as e:
-            print(f"✗ {test_func.__name__}: {type(e).__name__}: {e}")
-            failed += 1
-    
-    print(f"\n{passed} passed, {failed} failed")
-    sys.exit(0 if failed == 0 else 1)
+    assert result.returncode == 0
+    assert "usage:" in result.stdout or "usage:" in result.stderr
+    assert "--export" in result.stdout or "--export" in result.stderr

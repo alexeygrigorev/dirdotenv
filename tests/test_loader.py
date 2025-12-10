@@ -2,10 +2,6 @@
 
 import os
 import tempfile
-import sys
-
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from dirdotenv.loader import (
     find_env_files_in_tree,
@@ -223,44 +219,3 @@ def test_format_message_powershell():
     """Test formatting messages for PowerShell."""
     result = format_message('test message', 'powershell')
     assert "Write-Host 'test message'" in result
-
-
-if __name__ == '__main__':
-    # Run all tests
-    test_functions = [
-        test_find_env_files_in_tree_single_dir,
-        test_find_env_files_in_tree_nested,
-        test_find_env_files_in_tree_no_files,
-        test_load_env_with_inheritance_single_dir,
-        test_load_env_with_inheritance_parent_child,
-        test_load_env_with_inheritance_grandparent,
-        test_load_env_with_inheritance_subdirectory_no_env,
-        test_get_loaded_keys,
-        test_get_unloaded_keys,
-        test_format_export_commands_bash,
-        test_format_export_commands_fish,
-        test_format_export_commands_powershell,
-        test_format_unset_commands_bash,
-        test_format_unset_commands_fish,
-        test_format_unset_commands_powershell,
-        test_format_message_bash,
-        test_format_message_powershell,
-    ]
-    
-    passed = 0
-    failed = 0
-    
-    for test_func in test_functions:
-        try:
-            test_func()
-            print(f"✓ {test_func.__name__}")
-            passed += 1
-        except AssertionError as e:
-            print(f"✗ {test_func.__name__}: {e}")
-            failed += 1
-        except Exception as e:
-            print(f"✗ {test_func.__name__}: {type(e).__name__}: {e}")
-            failed += 1
-    
-    print(f"\n{passed} passed, {failed} failed")
-    sys.exit(0 if failed == 0 else 1)
