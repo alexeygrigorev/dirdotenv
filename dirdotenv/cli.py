@@ -83,7 +83,26 @@ def main():
     """Main entry point for the dirdotenv CLI."""
     parser = argparse.ArgumentParser(
         description='Load environment variables from .env and .envrc files',
-        prog='dirdotenv'
+        prog='dirdotenv',
+        epilog='''
+Examples:
+  # Show help
+  dirdotenv
+  
+  # Export variables for current directory
+  eval "$(dirdotenv --export)"
+  
+  # Execute command with loaded variables
+  dirdotenv --exec python script.py
+  
+  # Setup shell integration (automatic loading on cd)
+  eval "$(dirdotenv hook bash)"     # for bash
+  eval "$(dirdotenv hook zsh)"      # for zsh
+  dirdotenv hook fish | source      # for fish
+  
+For more information, see: https://github.com/alexeygrigorev/dirdotenv
+        ''',
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
     # Check if first argument is a known subcommand
@@ -91,11 +110,15 @@ def main():
         subparsers = parser.add_subparsers(dest='command', help='Available commands')
         
         # Hook subcommand
-        hook_parser = subparsers.add_parser('hook', help='Output shell hook code')
+        hook_parser = subparsers.add_parser(
+            'hook',
+            help='Output shell hook code for automatic environment loading',
+            description='Generate shell integration code for automatic loading of environment variables when changing directories (like direnv).'
+        )
         hook_parser.add_argument(
             'shell',
             choices=['bash', 'zsh', 'fish', 'powershell'],
-            help='Shell to generate hook for'
+            help='Shell to generate hook for (bash, zsh, fish, or powershell)'
         )
         
         # Load subcommand (used internally by hooks)
