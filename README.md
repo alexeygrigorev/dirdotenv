@@ -12,6 +12,7 @@ Like direnv, but works with both .envrc and .env files.
 - ✅ Can execute commands with loaded environment variables
 - ✅ Shell integration for automatic loading (like direnv)
 - ✅ Works with uvx for quick execution without installation
+- ✅ Supports Bash, Zsh, Fish, and PowerShell
 
 ## Installation
 
@@ -30,27 +31,6 @@ uvx dirdotenv
 # Or with a specific directory
 uvx dirdotenv /path/to/project
 ```
-
-### Shell Integration (Automatic Loading)
-
-For automatic loading of environment variables when you enter a directory (like direnv), install the shell integration:
-
-**Bash** - Add to your `~/.bashrc`:
-```bash
-source /path/to/dirdotenv/shell_integration/dirdotenv.bash
-```
-
-**Zsh** - Add to your `~/.zshrc`:
-```zsh
-source /path/to/dirdotenv/shell_integration/dirdotenv.zsh
-```
-
-**Fish** - Add to your `~/.config/fish/config.fish`:
-```fish
-source /path/to/dirdotenv/shell_integration/dirdotenv.fish
-```
-
-See [shell_integration/README.md](shell_integration/README.md) for more details.
 
 ## Usage
 
@@ -86,7 +66,48 @@ dirdotenv --shell bash
 
 # For fish shell
 dirdotenv --shell fish
+
+# For PowerShell
+dirdotenv --shell powershell
 ```
+
+## Shell Integration (Automatic Loading)
+
+For automatic loading of environment variables when you enter a directory (like direnv), use the `hook` command:
+
+### Bash
+
+Add to your `~/.bashrc`:
+
+```bash
+eval "$(dirdotenv hook bash)"
+```
+
+### Zsh
+
+Add to your `~/.zshrc`:
+
+```zsh
+eval "$(dirdotenv hook zsh)"
+```
+
+### Fish
+
+Add to your `~/.config/fish/config.fish`:
+
+```fish
+dirdotenv hook fish | source
+```
+
+### PowerShell
+
+Add to your PowerShell profile (run `notepad $PROFILE`):
+
+```powershell
+Invoke-Expression (dirdotenv hook powershell)
+```
+
+Once configured, environment variables from `.env` or `.envrc` files will be automatically loaded when you navigate to directories containing these files.
 
 ## File Format Examples
 
