@@ -1,8 +1,9 @@
 """Directory-aware environment variable loading with inheritance and cleanup."""
 
 import os
-from typing import Dict, Set, Tuple, Optional
-from .parser import load_env
+import sys
+from typing import Dict, Set, Tuple
+from dirdotenv.parser import load_env
 
 
 def find_env_files_in_tree(current_dir: str) -> list:
@@ -79,6 +80,60 @@ def get_unloaded_keys(old_vars: Dict[str, str], new_vars: Dict[str, str]) -> Set
     return set(old_vars.keys()) - set(new_vars.keys())
 
 
+def convert_windows_path_to_unix(path: str) -> str:
+    """
+    Convert Windows path to Unix-style path for MinGW/Git Bash.
+    
+    Examples:
+        C:\\Users\\user\\project -> /c/Users/user/project
+        C:/Users/user/project -> /c/Users/user/project
+        relative\\path -> relative/path
+    
+    Args:
+        path: Windows-style path
+        
+    Returns:
+        Unix-style path
+    """
+    # Convert backslashes to forward slashes
+    path = path.replace('\\', '/')
+    
+    # Convert Windows drive letter (C:/) to Unix style (/c/)
+    if len(path) >= 2 and path[1] == ':':
+        drive = path[0].lower()
+        rest = path[2:] if len(path) > 2 else ''
+        # Remove leading slash if present
+        if rest.startswith('/'):
+            rest = rest[1:]
+        path = f'/{drive}/{rest}' if rest else f'/{drive}'
+    
+    return path
+
+
+def is_windows_mingw() -> bool:
+    """
+    Check if we're running on Windows with MinGW/Git Bash.
+    
+    Returns:
+        True if running on Windows with a Unix-like shell environment
+    """
+    # Check if we're on Windows
+    if sys.platform != 'win32':
+        return False
+    
+    # Check for common MinGW/Git Bash environment variables
+    msystem = os.environ.get('MSYSTEM', '')
+    if msystem:  # Git Bash sets MSYSTEM (MINGW64, MINGW32, MSYS, etc.)
+        return True
+    
+    # Check if SHELL variable is set (common in Unix-like environments)
+    shell = os.environ.get('SHELL', '')
+    if 'bash' in shell.lower() or 'sh' in shell.lower():
+        return True
+    
+    return False
+
+
 def format_export_commands(env_vars: Dict[str, str], shell: str = 'bash') -> str:
     """
     Format environment variable export commands for the specified shell.
@@ -92,8 +147,15 @@ def format_export_commands(env_vars: Dict[str, str], shell: str = 'bash') -> str
     """
     lines = []
     
+    # Check if we need to convert paths for MinGW/Git Bash
+    convert_paths = (shell in ['bash', 'zsh']) and is_windows_mingw()
+    
     if shell in ['bash', 'zsh']:
         for key, value in env_vars.items():
+            # Convert Windows paths to Unix-style for MinGW/Git Bash
+            if convert_paths:
+                value = convert_windows_path_to_unix(value)
+            
             escaped_value = value.replace("'", "'\\''")
             lines.append(f"export {key}='{escaped_value}'")
     elif shell == 'fish':

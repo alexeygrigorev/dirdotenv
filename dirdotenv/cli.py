@@ -3,118 +3,22 @@
 import sys
 import os
 import argparse
-from .parser import load_env
-from .loader import (
+from dirdotenv.parser import load_env
+from dirdotenv.loader import (
     load_env_with_inheritance,
-    find_env_files_in_tree,
     get_loaded_keys,
     get_unloaded_keys,
     format_export_commands,
     format_unset_commands,
     format_message
 )
+from dirdotenv.hooks import get_hook
 
 
-def get_bash_hook():
-    """Return bash/zsh hook code."""
-    return '''_dirdotenv_load() {
-    # Track directory changes
-    if [[ "$_dirdotenv_last_dir" != "$PWD" ]]; then
-        _dirdotenv_last_dir="$PWD"
-        
-        # Check if we have env files or need to clean up
-        if command -v dirdotenv &> /dev/null; then
-            local output
-            if output=$(dirdotenv load --shell bash 2>&1); then
-                eval "$output"
-            fi
-        fi
-    fi
-}
-
-if [[ -z "$PROMPT_COMMAND" ]]; then
-    PROMPT_COMMAND="_dirdotenv_load"
-else
-    PROMPT_COMMAND="${PROMPT_COMMAND};_dirdotenv_load"
-fi
-'''
 
 
-def get_zsh_hook():
-    """Return zsh hook code."""
-    return '''_dirdotenv_load() {
-    # Track directory changes
-    if [[ "$_dirdotenv_last_dir" != "$PWD" ]]; then
-        _dirdotenv_last_dir="$PWD"
-        
-        # Check if we have env files or need to clean up
-        if command -v dirdotenv &> /dev/null; then
-            local output
-            if output=$(dirdotenv load --shell zsh 2>&1); then
-                eval "$output"
-            fi
-        fi
-    fi
-}
-
-autoload -U add-zsh-hook
-add-zsh-hook chpwd _dirdotenv_load
-_dirdotenv_load
-'''
 
 
-def get_fish_hook():
-    """Return fish hook code."""
-    return '''function _dirdotenv_load --on-variable PWD
-    # Track directory changes
-    if test "$_dirdotenv_last_dir" != "$PWD"
-        set -g _dirdotenv_last_dir $PWD
-        
-        if command -v dirdotenv > /dev/null 2>&1
-            set -l output (dirdotenv load --shell fish 2>&1)
-            if test $status -eq 0
-                eval $output
-            end
-        end
-    end
-end
-
-_dirdotenv_load
-'''
-
-
-def get_powershell_hook():
-    """Return PowerShell hook code."""
-    return '''function global:_dirdotenv_load {
-    $currentDir = Get-Location
-    
-    # Track directory changes
-    if ($global:_dirdotenv_last_dir -ne $currentDir.Path) {
-        $global:_dirdotenv_last_dir = $currentDir.Path
-        
-        if (Get-Command dirdotenv -ErrorAction SilentlyContinue) {
-            $output = dirdotenv load --shell powershell 2>&1
-            if ($LASTEXITCODE -eq 0) {
-                Invoke-Expression $output
-            }
-        }
-    }
-}
-
-# Store original prompt function if it exists
-if (Test-Path function:prompt) {
-    $global:_dirdotenv_prompt_old = Get-Content function:prompt
-}
-
-function global:prompt {
-    _dirdotenv_load
-    if ($global:_dirdotenv_prompt_old) {
-        Invoke-Command -ScriptBlock ([ScriptBlock]::Create($global:_dirdotenv_prompt_old))
-    } else {
-        "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "
-    }
-}
-'''
 
 
 def load_command(args):
@@ -141,7 +45,9 @@ def load_command(args):
     # Unset variables that should be removed
     if unloaded_keys:
         output_lines.append(format_unset_commands(unloaded_keys, shell))
-        output_lines.append(format_message(f"dirdotenv: unloaded {' '.join(sorted(unloaded_keys))}", shell))
+        # Format unloaded keys with - prefix like direnv
+        unloaded_msg = ' '.join(f'-{key}' for key in sorted(unloaded_keys))
+        output_lines.append(format_message(f"dirdotenv: {unloaded_msg}", shell))
     
     # Export new/changed variables
     if new_vars:
@@ -156,9 +62,10 @@ def load_command(args):
         elif shell == 'powershell':
             output_lines.append(f"$env:_DIRDOTENV_KEYS = '{all_keys}'")
         
-        # Show what was loaded
+        # Show what was loaded with + prefix like direnv
         if loaded_keys:
-            output_lines.append(format_message(f"dirdotenv: loaded {' '.join(sorted(loaded_keys))}", shell))
+            loaded_msg = ' '.join(f'+{key}' for key in sorted(loaded_keys))
+            output_lines.append(format_message(f"dirdotenv: {loaded_msg}", shell))
     elif old_keys:
         # Clear the tracking variable if nothing is loaded anymore
         if shell in ['bash', 'zsh']:
@@ -204,26 +111,24 @@ def main():
         
         # Handle hook command
         if args.command == 'hook':
-            if args.shell == 'bash':
-                print(get_bash_hook())
-            elif args.shell == 'zsh':
-                print(get_zsh_hook())
-            elif args.shell == 'fish':
-                print(get_fish_hook())
-            elif args.shell == 'powershell':
-                print(get_powershell_hook())
+            print(get_hook(args.shell))
             return 0
         
         # Handle load command
         if args.command == 'load':
             return load_command(args)
     
-    # Default behavior (load env vars without inheritance - backward compatible)
+    # Add arguments for default behavior
     parser.add_argument(
         'directory',
         nargs='?',
         default='.',
         help='Directory containing .env or .envrc files (default: current directory)'
+    )
+    parser.add_argument(
+        '--export',
+        action='store_true',
+        help='Export environment variables (outputs shell commands)'
     )
     parser.add_argument(
         '--shell',
@@ -239,6 +144,11 @@ def main():
     )
     
     args = parser.parse_args()
+    
+    # If no --export and no --exec, show help
+    if not args.export and not args.exec_command:
+        parser.print_help()
+        return 0
     
     # Load environment variables (single directory, no inheritance)
     env_vars = load_env(args.directory)
@@ -262,8 +172,9 @@ def main():
             print(f"Command not found: {args.exec_command[0]}", file=sys.stderr)
             return 127
     
-    # Otherwise, output shell commands to source
-    print(format_export_commands(env_vars, args.shell))
+    # If --export is specified, output shell commands to source
+    if args.export:
+        print(format_export_commands(env_vars, args.shell))
     
     return 0
 

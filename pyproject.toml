@@ -1,10 +1,6 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
 name = "dirdotenv"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Like direnv, but works with both .envrc and .env files"
 readme = "README.md"
 requires-python = ">=3.7"
@@ -31,3 +27,10 @@ Repository = "https://github.com/alexeygrigorev/dirdotenv"
 
 [project.scripts]
 dirdotenv = "dirdotenv.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "dirdotenv/__version__.py"

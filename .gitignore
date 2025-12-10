@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
 
 # C extensions
 *.so
@@ -28,6 +29,7 @@ wheels/
 venv/
 ENV/
 env/
+.venv
 
 # IDE
 .vscode/

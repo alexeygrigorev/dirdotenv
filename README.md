@@ -19,35 +19,72 @@ Like direnv, but works with both .envrc and .env files.
 ### Using pip
 
 ```bash
-pip install -e .
+pip install dirdotenv
 ```
 
-### Using uvx (recommended for quick testing)
+Then update your `.bashrc` or equivalent:
+
+```bash
+eval "$(dirdotenv hook bash)"
+```
+
+See [Shell Integration](#shell-integration) for more examples
+
+### Development
+
+When developing:
+
+```bash
+git clone git@github.com:alexeygrigorev/dirdotenv.git
+cd dirdotenv
+uv sync
+
+# assuming you cloned to ~/git/dirdotenv/
+alias dirdotenv="uv run --project ~/git/dirdotenv/ python -m dirdotenv"
+eval "$(dirdotenv hook bash)"
+```
+
+### Using uvx
 
 ```bash
 # Run without installation
-uvx dirdotenv
-
-# Or with a specific directory
-uvx dirdotenv /path/to/project
+eval "$(uvx dirdotenv hook bash)"
 ```
 
 ## Usage
 
+### Show help
+
+```bash
+# Display usage information
+dirdotenv
+dirdotenv --help
+```
+
 ### Load environment variables from current directory
 
 ```bash
-# Output export commands for your shell
-dirdotenv
-
-# Use with eval to load variables into your current shell
-eval "$(dirdotenv)"
+# Output export commands for your shell (use --export to prevent accidental exposure)
+eval "$(dirdotenv --export)"
 ```
 
 ### Load environment variables from a specific directory
 
 ```bash
-dirdotenv /path/to/directory
+eval "$(dirdotenv /path/to/directory --export)"
+```
+
+### Specify shell format
+
+```bash
+# For bash/zsh (default)
+eval "$(dirdotenv --export --shell bash)"
+
+# For fish shell
+dirdotenv --export --shell fish | source
+
+# For PowerShell
+Invoke-Expression (dirdotenv --export --shell powershell)
 ```
 
 ### Execute a command with loaded environment variables
@@ -58,20 +95,8 @@ dirdotenv --exec python script.py
 dirdotenv --exec node app.js
 ```
 
-### Specify shell format
 
-```bash
-# For bash/zsh (default)
-dirdotenv --shell bash
-
-# For fish shell
-dirdotenv --shell fish
-
-# For PowerShell
-dirdotenv --shell powershell
-```
-
-## Shell Integration (Automatic Loading)
+## Shell Integration
 
 For automatic loading of environment variables when you enter a directory (like direnv), use the `hook` command:
 
@@ -111,10 +136,10 @@ Invoke-Expression (dirdotenv hook powershell)
 
 Once configured, the shell integration provides direnv-like behavior:
 
-1. **Entering a directory**: When you `cd` into a directory with `.env` or `.envrc` files, the variables are automatically loaded and the key names are displayed
+1. **Entering a directory**: When you `cd` into a directory with `.env` or `.envrc` files, the variables are automatically loaded and displayed with a `+` prefix
    ```
    $ cd myproject
-   dirdotenv: loaded API_KEY DATABASE_URL PORT
+   dirdotenv: +API_KEY +DATABASE_URL +PORT
    ```
 
 2. **Subdirectory inheritance**: Child directories inherit variables from parent directories but can override them
@@ -125,17 +150,17 @@ Once configured, the shell integration provides direnv-like behavior:
        .env        # API_KEY=child_value, DB_HOST=localhost
    
    $ cd myproject
-   dirdotenv: loaded API_KEY
+   dirdotenv: +API_KEY
    
    $ cd backend
-   dirdotenv: loaded API_KEY DB_HOST  # API_KEY is overridden, DB_HOST is new
+   dirdotenv: +API_KEY +DB_HOST  # API_KEY is overridden, DB_HOST is new
    ```
 
-3. **Leaving a directory**: When you leave a directory tree, variables that were set are automatically unloaded
+3. **Leaving a directory**: When you leave a directory tree, variables that were set are automatically unloaded and displayed with a `-` prefix
    ```
    $ cd ..  # leaving myproject tree
-   dirdotenv: unloaded API_KEY DATABASE_URL PORT
-   ```
+   dirdotenv: -API_KEY -DATABASE_URL -PORT
+   ``` 
 
 
 ## File Format Examples
@@ -167,7 +192,3 @@ export DEBUG=true
 When both `.env` and `.envrc` files exist in the same directory:
 1. Variables from `.envrc` are loaded first
 2. Variables from `.env` override any duplicate keys from `.envrc`
-
-## License
-
-MIT
