@@ -107,7 +107,36 @@ Add to your PowerShell profile (run `notepad $PROFILE`):
 Invoke-Expression (dirdotenv hook powershell)
 ```
 
-Once configured, environment variables from `.env` or `.envrc` files will be automatically loaded when you navigate to directories containing these files.
+### How Shell Integration Works
+
+Once configured, the shell integration provides direnv-like behavior:
+
+1. **Entering a directory**: When you `cd` into a directory with `.env` or `.envrc` files, the variables are automatically loaded and the key names are displayed
+   ```
+   $ cd myproject
+   dirdotenv: loaded API_KEY DATABASE_URL PORT
+   ```
+
+2. **Subdirectory inheritance**: Child directories inherit variables from parent directories but can override them
+   ```
+   myproject/
+     .env          # API_KEY=parent_value
+     backend/
+       .env        # API_KEY=child_value, DB_HOST=localhost
+   
+   $ cd myproject
+   dirdotenv: loaded API_KEY
+   
+   $ cd backend
+   dirdotenv: loaded API_KEY DB_HOST  # API_KEY is overridden, DB_HOST is new
+   ```
+
+3. **Leaving a directory**: When you leave a directory tree, variables that were set are automatically unloaded
+   ```
+   $ cd ..  # leaving myproject tree
+   dirdotenv: unloaded API_KEY DATABASE_URL PORT
+   ```
+
 
 ## File Format Examples
 
