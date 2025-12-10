@@ -18,17 +18,11 @@ from .loader import (
 def get_bash_hook():
     """Return bash/zsh hook code."""
     return '''_dirdotenv_load() {
-    # Get the current directory's env state
-    local current_hash=$(pwd | md5sum 2>/dev/null | cut -d' ' -f1 || echo "")
-    
-    # Check if we changed directories
-    if [[ "$_dirdotenv_last_hash" != "$current_hash" ]]; then
-        _dirdotenv_last_hash="$current_hash"
+    # Track directory changes
+    if [[ "$_dirdotenv_last_dir" != "$PWD" ]]; then
+        _dirdotenv_last_dir="$PWD"
         
-        # Save current env vars that dirdotenv manages
-        local old_keys="$_dirdotenv_keys"
-        
-        # Check if we have env files in current tree
+        # Check if we have env files or need to clean up
         if command -v dirdotenv &> /dev/null; then
             local output
             if output=$(dirdotenv load --shell bash 2>&1); then
@@ -49,17 +43,11 @@ fi
 def get_zsh_hook():
     """Return zsh hook code."""
     return '''_dirdotenv_load() {
-    # Get the current directory's env state
-    local current_hash=$(pwd | md5sum 2>/dev/null | cut -d' ' -f1 || echo "")
-    
-    # Check if we changed directories
-    if [[ "$_dirdotenv_last_hash" != "$current_hash" ]]; then
-        _dirdotenv_last_hash="$current_hash"
+    # Track directory changes
+    if [[ "$_dirdotenv_last_dir" != "$PWD" ]]; then
+        _dirdotenv_last_dir="$PWD"
         
-        # Save current env vars that dirdotenv manages
-        local old_keys="$_dirdotenv_keys"
-        
-        # Check if we have env files in current tree
+        # Check if we have env files or need to clean up
         if command -v dirdotenv &> /dev/null; then
             local output
             if output=$(dirdotenv load --shell zsh 2>&1); then
@@ -78,11 +66,9 @@ _dirdotenv_load
 def get_fish_hook():
     """Return fish hook code."""
     return '''function _dirdotenv_load --on-variable PWD
-    # Get current directory hash
-    set -l current_hash (pwd | md5sum 2>/dev/null | string split ' ')[1]
-    
-    if test "$_dirdotenv_last_hash" != "$current_hash"
-        set -g _dirdotenv_last_hash $current_hash
+    # Track directory changes
+    if test "$_dirdotenv_last_dir" != "$PWD"
+        set -g _dirdotenv_last_dir $PWD
         
         if command -v dirdotenv > /dev/null 2>&1
             set -l output (dirdotenv load --shell fish 2>&1)
@@ -101,10 +87,10 @@ def get_powershell_hook():
     """Return PowerShell hook code."""
     return '''function global:_dirdotenv_load {
     $currentDir = Get-Location
-    $currentHash = ($currentDir.Path | Get-FileHash -Algorithm MD5 -ErrorAction SilentlyContinue).Hash
     
-    if ($global:_dirdotenv_last_hash -ne $currentHash) {
-        $global:_dirdotenv_last_hash = $currentHash
+    # Track directory changes
+    if ($global:_dirdotenv_last_dir -ne $currentDir.Path) {
+        $global:_dirdotenv_last_dir = $currentDir.Path
         
         if (Get-Command dirdotenv -ErrorAction SilentlyContinue) {
             $output = dirdotenv load --shell powershell 2>&1
