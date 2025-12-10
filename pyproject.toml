@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=45", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "dirdotenv"
@@ -31,7 +31,3 @@ Repository = "https://github.com/alexeygrigorev/dirdotenv"
 
 [project.scripts]
 dirdotenv = "dirdotenv.cli:main"
-
-[tool.setuptools.packages.find]
-include = ["dirdotenv*"]
-exclude = ["tests*", "examples*", "shell_integration*"]
