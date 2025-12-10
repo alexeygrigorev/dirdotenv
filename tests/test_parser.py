@@ -2,8 +2,6 @@
 
 import os
 import tempfile
-import shutil
-from pathlib import Path
 import sys
 
 # Add parent directory to path for imports
@@ -84,6 +82,24 @@ def test_parse_env_file_missing():
     """Test parsing a non-existent .env file."""
     result = parse_env_file('/nonexistent/path/.env')
     assert result == {}
+
+
+def test_parse_env_file_unbalanced_quotes():
+    """Test parsing .env file with unbalanced quotes (should keep as-is)."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        env_file = os.path.join(tmpdir, '.env')
+        with open(env_file, 'w') as f:
+            f.write('VALUE1="test\n')  # Missing closing quote
+            f.write("VALUE2='test\n")  # Missing closing quote
+            f.write('VALUE3="\n')      # Empty with single quote
+        
+        result = parse_env_file(env_file)
+        # Should keep values as-is when quotes are unbalanced
+        assert result == {
+            'VALUE1': '"test',
+            'VALUE2': "'test",
+            'VALUE3': '"'
+        }
 
 
 def test_parse_envrc_file_simple():
@@ -230,6 +246,7 @@ if __name__ == '__main__':
         test_parse_env_file_multiple_vars,
         test_parse_env_file_comments,
         test_parse_env_file_missing,
+        test_parse_env_file_unbalanced_quotes,
         test_parse_envrc_file_simple,
         test_parse_envrc_file_double_quotes,
         test_parse_envrc_file_no_quotes,

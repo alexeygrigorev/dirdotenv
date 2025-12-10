@@ -25,7 +25,7 @@ def parse_env_file(filepath: str) -> Dict[str, str]:
     if not os.path.exists(filepath):
         return env_vars
     
-    with open(filepath, 'r') as f:
+    with open(filepath, 'r', encoding='utf-8') as f:
         for line in f:
             line = line.strip()
             
@@ -39,10 +39,11 @@ def parse_env_file(filepath: str) -> Dict[str, str]:
                 key = match.group(1)
                 value = match.group(2)
                 
-                # Remove quotes if present
-                if (value.startswith("'") and value.endswith("'")) or \
-                   (value.startswith('"') and value.endswith('"')):
-                    value = value[1:-1]
+                # Remove quotes if present (only if balanced and matching)
+                if len(value) >= 2:
+                    if (value.startswith("'") and value.endswith("'")) or \
+                       (value.startswith('"') and value.endswith('"')):
+                        value = value[1:-1]
                 
                 env_vars[key] = value
     
@@ -69,7 +70,7 @@ def parse_envrc_file(filepath: str) -> Dict[str, str]:
     if not os.path.exists(filepath):
         return env_vars
     
-    with open(filepath, 'r') as f:
+    with open(filepath, 'r', encoding='utf-8') as f:
         for line in f:
             line = line.strip()
             
@@ -83,10 +84,11 @@ def parse_envrc_file(filepath: str) -> Dict[str, str]:
                 key = match.group(1)
                 value = match.group(2)
                 
-                # Remove quotes if present
-                if (value.startswith("'") and value.endswith("'")) or \
-                   (value.startswith('"') and value.endswith('"')):
-                    value = value[1:-1]
+                # Remove quotes if present (only if balanced and matching)
+                if len(value) >= 2:
+                    if (value.startswith("'") and value.endswith("'")) or \
+                       (value.startswith('"') and value.endswith('"')):
+                        value = value[1:-1]
                 
                 env_vars[key] = value
     
