@@ -222,9 +222,9 @@ def test_load_env_with_both_files():
             f.write('export DATABASE_URL="postgres://localhost/mydb"\n')
         
         result = load_env(tmpdir)
-        # .envrc should override .env for OPENAI_API_KEY
+        # .env should override .envrc for OPENAI_API_KEY
         assert result == {
-            'OPENAI_API_KEY': 'envrc-key',  # overridden by .envrc
+            'OPENAI_API_KEY': 'env-key',  # overridden by .env
             'API_PORT': '8080',  # from .env
             'DATABASE_URL': 'postgres://localhost/mydb'  # from .envrc
         }

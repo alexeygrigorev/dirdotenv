@@ -10,12 +10,47 @@ Like direnv, but works with both .envrc and .env files.
 - ✅ Supports comments (lines starting with `#`)
 - ✅ Can export environment variables for your shell
 - ✅ Can execute commands with loaded environment variables
+- ✅ Shell integration for automatic loading (like direnv)
+- ✅ Works with uvx for quick execution without installation
 
 ## Installation
+
+### Using pip
 
 ```bash
 pip install -e .
 ```
+
+### Using uvx (recommended for quick testing)
+
+```bash
+# Run without installation
+uvx dirdotenv
+
+# Or with a specific directory
+uvx dirdotenv /path/to/project
+```
+
+### Shell Integration (Automatic Loading)
+
+For automatic loading of environment variables when you enter a directory (like direnv), install the shell integration:
+
+**Bash** - Add to your `~/.bashrc`:
+```bash
+source /path/to/dirdotenv/shell_integration/dirdotenv.bash
+```
+
+**Zsh** - Add to your `~/.zshrc`:
+```zsh
+source /path/to/dirdotenv/shell_integration/dirdotenv.zsh
+```
+
+**Fish** - Add to your `~/.config/fish/config.fish`:
+```fish
+source /path/to/dirdotenv/shell_integration/dirdotenv.fish
+```
+
+See [shell_integration/README.md](shell_integration/README.md) for more details.
 
 ## Usage
 
@@ -80,8 +115,8 @@ export DEBUG=true
 ## Priority
 
 When both `.env` and `.envrc` files exist in the same directory:
-1. Variables from `.env` are loaded first
-2. Variables from `.envrc` override any duplicate keys from `.env`
+1. Variables from `.envrc` are loaded first
+2. Variables from `.env` override any duplicate keys from `.envrc`
 
 ## License
 

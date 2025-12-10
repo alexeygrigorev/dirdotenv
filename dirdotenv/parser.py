@@ -100,8 +100,8 @@ def load_env(directory: str = '.') -> Dict[str, str]:
     Load environment variables from .env and .envrc files in the specified directory.
     
     Priority (later overrides earlier):
-    1. .env file
-    2. .envrc file
+    1. .envrc file
+    2. .env file (takes precedence)
     
     Args:
         directory: Directory to search for .env and .envrc files (default: current directory)
@@ -111,12 +111,12 @@ def load_env(directory: str = '.') -> Dict[str, str]:
     """
     env_vars = {}
     
-    # Load .env file
-    env_file = os.path.join(directory, '.env')
-    env_vars.update(parse_env_file(env_file))
-    
-    # Load .envrc file (overrides .env)
+    # Load .envrc file first
     envrc_file = os.path.join(directory, '.envrc')
     env_vars.update(parse_envrc_file(envrc_file))
+    
+    # Load .env file (overrides .envrc)
+    env_file = os.path.join(directory, '.env')
+    env_vars.update(parse_env_file(env_file))
     
     return env_vars
