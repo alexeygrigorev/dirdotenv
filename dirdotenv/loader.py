@@ -2,7 +2,7 @@
 
 import os
 import sys
-from typing import Dict, Set, Tuple
+from typing import Dict, Set, Tuple, Optional
 from dirdotenv.parser import load_env
 
 
@@ -44,6 +44,70 @@ def load_env_with_inheritance(current_dir: str) -> Tuple[Dict[str, str], list]:
         env_vars.update(load_env(directory))
     
     return env_vars, directories
+
+
+def compute_env_state(current_dir: str) -> str:
+    """
+    Compute a state string representing the current state of .env and .envrc files.
+    
+    This includes the directory path and modification times of all relevant env files
+    from root to current directory.
+    
+    Args:
+        current_dir: Current directory path
+        
+    Returns:
+        State string that changes when files are added, removed, or modified
+    """
+    state_parts = []
+    path = os.path.abspath(current_dir)
+    
+    # Collect all parent directories up to root
+    check_paths = []
+    while True:
+        check_paths.append(path)
+        parent = os.path.dirname(path)
+        if parent == path:  # Reached root
+            break
+        path = parent
+    
+    # Reverse to go from root to current
+    check_paths.reverse()
+    
+    # Check each directory for .env or .envrc files and record their state
+    for directory in check_paths:
+        for filename in ['.env', '.envrc']:
+            filepath = os.path.join(directory, filename)
+            if os.path.isfile(filepath):
+                try:
+                    mtime = os.path.getmtime(filepath)
+                    state_parts.append(f"{filepath}:{mtime}")
+                except (OSError, IOError):
+                    # If we can't read the file, skip it
+                    pass
+    
+    # Include the current directory in the state
+    state_parts.insert(0, f"dir:{current_dir}")
+    
+    return ";".join(state_parts)
+
+
+def has_state_changed(old_state: Optional[str], current_dir: str) -> bool:
+    """
+    Check if the environment state has changed.
+    
+    Args:
+        old_state: Previous state string (None if first run)
+        current_dir: Current directory path
+        
+    Returns:
+        True if state has changed, False otherwise
+    """
+    if old_state is None:
+        return True
+    
+    new_state = compute_env_state(current_dir)
+    return old_state != new_state
 
 
 def get_loaded_keys(old_vars: Dict[str, str], new_vars: Dict[str, str]) -> Set[str]:

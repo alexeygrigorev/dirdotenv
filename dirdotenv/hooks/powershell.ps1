@@ -1,15 +1,9 @@
 function global:_dirdotenv_load {
-    $currentDir = Get-Location
-    
-    # Track directory changes
-    if ($global:_dirdotenv_last_dir -ne $currentDir.Path) {
-        $global:_dirdotenv_last_dir = $currentDir.Path
-        
-        if (Get-Command dirdotenv -ErrorAction SilentlyContinue) {
-            $output = (dirdotenv load --shell powershell 2>&1) -join "`n"
-            if ($LASTEXITCODE -eq 0 -and $output) {
-                Invoke-Expression $output
-            }
+    # Call dirdotenv load - it handles state tracking internally
+    if (Get-Command dirdotenv -ErrorAction SilentlyContinue) {
+        $output = (dirdotenv load --shell powershell 2>&1) -join "`n"
+        if ($LASTEXITCODE -eq 0 -and $output) {
+            Invoke-Expression $output
         }
     }
 }
