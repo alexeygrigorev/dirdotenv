@@ -219,3 +219,57 @@ def test_format_message_powershell():
     """Test formatting messages for PowerShell."""
     result = format_message('test message', 'powershell')
     assert "Write-Host 'test message'" in result
+
+
+def test_new_env_file_detection():
+    """Test that newly created .env files are detected immediately.
+    
+    This test reproduces the issue where:
+    - User enters a directory
+    - Creates a new .env file
+    - File should be discovered immediately without cd .. && cd -
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # First load: no .env file exists
+        env_vars_1, dirs_1 = load_env_with_inheritance(tmpdir)
+        assert len(env_vars_1) == 0
+        assert len(dirs_1) == 0
+        
+        # Create a new .env file (simulating user creating it in current directory)
+        env_file = os.path.join(tmpdir, '.env')
+        with open(env_file, 'w', encoding='utf-8') as f:
+            f.write("NEW_VAR=new_value\n")
+        
+        # Second load: should detect the new file immediately
+        env_vars_2, dirs_2 = load_env_with_inheritance(tmpdir)
+        assert len(env_vars_2) == 1
+        assert env_vars_2['NEW_VAR'] == 'new_value'
+        assert len(dirs_2) == 1
+        assert tmpdir in dirs_2
+
+
+def test_modified_env_file_detection():
+    """Test that modifications to existing .env files are detected.
+    
+    This test ensures that when a .env file is modified,
+    the changes are picked up immediately.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Create initial .env file
+        env_file = os.path.join(tmpdir, '.env')
+        with open(env_file, 'w', encoding='utf-8') as f:
+            f.write("VAR1=value1\n")
+        
+        # First load
+        env_vars_1, dirs_1 = load_env_with_inheritance(tmpdir)
+        assert env_vars_1['VAR1'] == 'value1'
+        assert 'VAR2' not in env_vars_1
+        
+        # Modify the .env file (add a new variable)
+        with open(env_file, 'a', encoding='utf-8') as f:
+            f.write("VAR2=value2\n")
+        
+        # Second load: should detect the change
+        env_vars_2, dirs_2 = load_env_with_inheritance(tmpdir)
+        assert env_vars_2['VAR1'] == 'value1'
+        assert env_vars_2['VAR2'] == 'value2'
