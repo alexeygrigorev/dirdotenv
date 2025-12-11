@@ -281,8 +281,7 @@ def test_new_env_file_detection(shell, empty_dir_for_new_env):
     child.sendline("echo $NEW_VAR")
     child.expect(prompt)
     if "new_value" in child.before:
-        print(f"Variable already set in {shell}. Output: {child.before}")
-        assert False
+        pytest.fail(f"Variable already set in {shell}. Output: {child.before}")
     
     # Create a new .env file while in the directory
     env_file = test_dir / ".env"
@@ -298,7 +297,4 @@ def test_new_env_file_detection(shell, empty_dir_for_new_env):
     child.expect(prompt)
     
     if "new_value" not in child.before:
-        print(f"Failed to load newly created .env in {shell}. Output: {child.before}")
-        assert False
-    
-    assert True
+        pytest.fail(f"Failed to load newly created .env in {shell}. Output: {child.before}")

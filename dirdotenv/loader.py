@@ -65,11 +65,14 @@ def compute_env_state(current_dir: str) -> str:
     # Collect all parent directories up to root
     check_paths = []
     while True:
-        check_paths.insert(0, path)  # Insert at beginning to go root->leaf
+        check_paths.append(path)
         parent = os.path.dirname(path)
         if parent == path:  # Reached root
             break
         path = parent
+    
+    # Reverse to go from root to current
+    check_paths.reverse()
     
     # Check each directory for .env or .envrc files and record their state
     for directory in check_paths:
