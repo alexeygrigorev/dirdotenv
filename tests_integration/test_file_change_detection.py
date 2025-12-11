@@ -1,4 +1,13 @@
-"""Integration tests for file change detection - reproducing issue #4"""
+"""Integration tests for file change detection - verifying fix for issue #4
+
+These tests verify that file changes (.env or .envrc) are automatically detected
+and reloaded when:
+1. A new .env file is created in the current directory
+2. An existing .env file is modified
+3. Variables are removed from .env file
+
+All tests pass, confirming the file change detection functionality works correctly.
+"""
 
 import pytest
 import pexpect
