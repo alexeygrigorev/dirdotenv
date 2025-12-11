@@ -9,5 +9,5 @@ _dirdotenv_load() {
 }
 
 autoload -U add-zsh-hook
-add-zsh-hook chpwd _dirdotenv_load
+add-zsh-hook precmd _dirdotenv_load
 _dirdotenv_load
