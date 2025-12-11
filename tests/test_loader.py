@@ -10,7 +10,9 @@ from dirdotenv.loader import (
     get_unloaded_keys,
     format_export_commands,
     format_unset_commands,
-    format_message
+    format_message,
+    compute_env_state,
+    has_state_changed,
 )
 
 
@@ -219,6 +221,140 @@ def test_format_message_powershell():
     """Test formatting messages for PowerShell."""
     result = format_message('test message', 'powershell')
     assert "Write-Host 'test message'" in result
+
+
+def test_compute_env_state_no_files():
+    """Test computing state when no .env files exist."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        state = compute_env_state(tmpdir)
+        # Should contain directory but no file entries
+        assert f"dir:{tmpdir}" in state
+        assert ".env" not in state
+        assert ".envrc" not in state
+
+
+def test_compute_env_state_with_env_file():
+    """Test computing state with a .env file."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        env_file = os.path.join(tmpdir, '.env')
+        with open(env_file, 'w', encoding='utf-8') as f:
+            f.write("TEST=value\n")
+        
+        state = compute_env_state(tmpdir)
+        assert f"dir:{tmpdir}" in state
+        assert ".env" in state
+        # State should include modification time
+        assert ":" in state
+
+
+def test_compute_env_state_with_both_files():
+    """Test computing state with both .env and .envrc files."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        env_file = os.path.join(tmpdir, '.env')
+        with open(env_file, 'w', encoding='utf-8') as f:
+            f.write("TEST1=value1\n")
+        
+        envrc_file = os.path.join(tmpdir, '.envrc')
+        with open(envrc_file, 'w', encoding='utf-8') as f:
+            f.write("export TEST2=value2\n")
+        
+        state = compute_env_state(tmpdir)
+        assert ".env" in state
+        assert ".envrc" in state
+
+
+def test_compute_env_state_nested():
+    """Test computing state with nested directories."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Parent .env
+        parent_env = os.path.join(tmpdir, '.env')
+        with open(parent_env, 'w', encoding='utf-8') as f:
+            f.write("PARENT=value\n")
+        
+        # Child directory with .env
+        child_dir = os.path.join(tmpdir, 'child')
+        os.makedirs(child_dir)
+        child_env = os.path.join(child_dir, '.env')
+        with open(child_env, 'w', encoding='utf-8') as f:
+            f.write("CHILD=value\n")
+        
+        state = compute_env_state(child_dir)
+        # Should include both parent and child .env files
+        assert parent_env in state
+        assert child_env in state
+
+
+def test_has_state_changed_none_state():
+    """Test state change detection with no previous state."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # First time should always detect change
+        assert has_state_changed(None, tmpdir) is True
+
+
+def test_has_state_changed_same_state():
+    """Test state change detection with unchanged state."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        env_file = os.path.join(tmpdir, '.env')
+        with open(env_file, 'w', encoding='utf-8') as f:
+            f.write("TEST=value\n")
+        
+        # Get initial state
+        state1 = compute_env_state(tmpdir)
+        
+        # Check again without changes
+        assert has_state_changed(state1, tmpdir) is False
+
+
+def test_has_state_changed_new_file():
+    """Test state change detection when a new file is created."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Get initial state with no files
+        state1 = compute_env_state(tmpdir)
+        
+        # Create a new .env file
+        env_file = os.path.join(tmpdir, '.env')
+        with open(env_file, 'w', encoding='utf-8') as f:
+            f.write("NEW_VAR=value\n")
+        
+        # Should detect the change
+        assert has_state_changed(state1, tmpdir) is True
+
+
+def test_has_state_changed_modified_file():
+    """Test state change detection when a file is modified."""
+    import time
+    with tempfile.TemporaryDirectory() as tmpdir:
+        env_file = os.path.join(tmpdir, '.env')
+        with open(env_file, 'w', encoding='utf-8') as f:
+            f.write("TEST=value1\n")
+        
+        # Get initial state
+        state1 = compute_env_state(tmpdir)
+        
+        # Wait a bit to ensure mtime changes
+        time.sleep(0.01)
+        
+        # Modify the file
+        with open(env_file, 'a', encoding='utf-8') as f:
+            f.write("TEST2=value2\n")
+        
+        # Should detect the change
+        assert has_state_changed(state1, tmpdir) is True
+
+
+def test_has_state_changed_directory_change():
+    """Test state change detection when changing directories."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        dir1 = os.path.join(tmpdir, 'dir1')
+        dir2 = os.path.join(tmpdir, 'dir2')
+        os.makedirs(dir1)
+        os.makedirs(dir2)
+        
+        # Get state for dir1
+        state1 = compute_env_state(dir1)
+        
+        # Check state for dir2 (different directory)
+        assert has_state_changed(state1, dir2) is True
 
 
 def test_new_env_file_detection():

@@ -11,6 +11,8 @@ from dirdotenv.loader import (
     format_export_commands,
     format_unset_commands,
     format_message,
+    compute_env_state,
+    has_state_changed,
 )
 from dirdotenv.hooks import get_hook
 
@@ -20,6 +22,17 @@ def load_command(args):
     shell = args.shell
     current_dir = os.getcwd()
 
+    # Get previous state from environment
+    old_state = os.environ.get("_DIRDOTENV_STATE", None)
+    
+    # Check if state has changed (directory or files)
+    if not has_state_changed(old_state, current_dir):
+        # No changes detected, output nothing
+        return 0
+    
+    # Compute new state
+    new_state = compute_env_state(current_dir)
+    
     # Load with inheritance
     new_vars, loaded_dirs = load_env_with_inheritance(current_dir)
 
@@ -70,6 +83,18 @@ def load_command(args):
             output_lines.append(
                 "Remove-Item Env:_DIRDOTENV_KEYS -ErrorAction SilentlyContinue"
             )
+    
+    # Store the new state
+    if shell in ["bash", "zsh"]:
+        # Escape single quotes in the state string for shell
+        escaped_state = new_state.replace("'", "'\\''")
+        output_lines.append(f"export _DIRDOTENV_STATE='{escaped_state}'")
+    elif shell == "fish":
+        escaped_state = new_state.replace("'", "\\'")
+        output_lines.append(f"set -gx _DIRDOTENV_STATE '{escaped_state}'")
+    elif shell == "powershell":
+        escaped_state = new_state.replace("'", "''")
+        output_lines.append(f"$env:_DIRDOTENV_STATE = '{escaped_state}'")
 
     print("\n".join(output_lines))
     return 0
