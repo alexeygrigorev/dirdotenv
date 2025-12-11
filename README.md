@@ -6,9 +6,8 @@ Like direnv, but works with both .envrc and .env files.
 
 - ✅ Supports `.env` files with the format `KEY=value`
 - ✅ Supports `.envrc` files with the format `export KEY=value`
-- ✅ Shell integration for automatic loading
+- ✅ Shell integration with bash, zsh, fish and pwsh
 - ✅ Use `uvx dirdotenv` to run it without installation or install easily with `uv tool install dirdotenv`
-- ✅ Supports Bash, Zsh, Fish, and PowerShell
 - ✅ Cross-platform, written in Python 
 
 ## Installation
