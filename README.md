@@ -63,6 +63,9 @@ dirdotenv --help
 
 ### Load environment variables from current directory
 
+Note: this is not recommended to use directly - use hooks instead.
+
+
 ```bash
 # Output export commands for your shell (use --export to prevent accidental exposure)
 eval "$(dirdotenv --export)"
@@ -84,7 +87,7 @@ eval "$(dirdotenv --export --shell bash)"
 dirdotenv --export --shell fish | source
 
 # For PowerShell
-Invoke-Expression (dirdotenv --export --shell powershell)
+Invoke-Expression ((dirdotenv --export --shell powershell) -join "`n")
 ```
 
 ### Execute a command with loaded environment variables
@@ -129,7 +132,7 @@ dirdotenv hook fish | source
 Add to your PowerShell profile (run `notepad $PROFILE`):
 
 ```powershell
-Invoke-Expression (dirdotenv hook powershell)
+Invoke-Expression ((dirdotenv hook powershell) -join "`n")
 ```
 
 ### How Shell Integration Works

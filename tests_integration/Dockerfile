@@ -5,7 +5,6 @@ RUN apt-get update && apt-get install -y \
     bash \
     zsh \
     fish \
-    git \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

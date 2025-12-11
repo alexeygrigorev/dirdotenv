@@ -6,8 +6,8 @@ function global:_dirdotenv_load {
         $global:_dirdotenv_last_dir = $currentDir.Path
         
         if (Get-Command dirdotenv -ErrorAction SilentlyContinue) {
-            $output = dirdotenv load --shell powershell 2>&1
-            if ($LASTEXITCODE -eq 0) {
+            $output = (dirdotenv load --shell powershell 2>&1) -join "`n"
+            if ($LASTEXITCODE -eq 0 -and $output) {
                 Invoke-Expression $output
             }
         }
@@ -23,7 +23,8 @@ function global:prompt {
     _dirdotenv_load
     if ($global:_dirdotenv_prompt_old) {
         Invoke-Command -ScriptBlock ([ScriptBlock]::Create($global:_dirdotenv_prompt_old))
-    } else {
+    }
+    else {
         "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "
     }
 }
