@@ -41,7 +41,7 @@ jobs:
       - name: Run integration tests
         run: docker run --rm dirdotenv-test pytest tests_integration/test_file_change_detection.py -v
 
-  powershell-tests:
+  windows-tests:
     needs: unit-tests
     runs-on: windows-latest
     steps:

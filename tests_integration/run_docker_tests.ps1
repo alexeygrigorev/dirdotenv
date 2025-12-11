@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 Write-Host "Building Docker image..."
-docker build --no-cache -t dirdotenv-test -f tests_integration/Dockerfile .
+docker build -t dirdotenv-test -f tests_integration/Dockerfile .
 
 Write-Host "Running tests..."
 docker run --rm dirdotenv-test pytest tests_integration/test_integrations.py -v -s
