@@ -6,40 +6,14 @@ Like direnv, but works with both .envrc and .env files.
 
 - ✅ Supports `.env` files with the format `KEY=value`
 - ✅ Supports `.envrc` files with the format `export KEY=value`
-- ✅ Works with single quotes, double quotes, or no quotes
-- ✅ Supports comments (lines starting with `#`)
-- ✅ Can export environment variables for your shell
-- ✅ Can execute commands with loaded environment variables
-- ✅ Shell integration for automatic loading (like direnv)
-- ✅ Works with uvx for quick execution without installation
+- ✅ Shell integration for automatic loading
+- ✅ Use `uvx dirdotenv` to run it without installation or install easily with `uv tool install dirdotenv`
 - ✅ Supports Bash, Zsh, Fish, and PowerShell
+- ✅ Cross-platform, written in Python 
 
 ## Installation
 
-### Using pip
-
-```bash
-pip install dirdotenv
-```
-
-Then update your `.bashrc` or equivalent:
-
-```bash
-eval "$(dirdotenv hook bash)"
-```
-
-See [Shell Integration](#shell-integration) for more examples
-
-### Using uvx
-
-```bash
-# Run without installation
-eval "$(uvx dirdotenv hook bash)"
-```
-
 ### Using uv
-
-To install it with uv as a tool:
 
 ```bash
 uv tool install dirdotenv
@@ -47,6 +21,27 @@ uv tool install dirdotenv
 
 Now it's available as `dirdotenv` command.
 
+Then update your `.bashrc` or equivalent:
+
+```bash
+eval "$(dirdotenv hook bash)"
+```
+
+See [Shell Integration](#shell-integration) for other shells
+
+### Using uvx
+
+Run without installation
+
+```bash
+eval "$(uvx dirdotenv hook bash)"
+```
+
+### Using pip
+
+```bash
+pip install dirdotenv
+```
 
 ### Development
 
@@ -61,57 +56,6 @@ uv sync
 alias dirdotenv="uv run --project ~/git/dirdotenv/ python -m dirdotenv"
 eval "$(dirdotenv hook bash)"
 ```
-
-
-
-
-## Usage
-
-### Show help
-
-```bash
-# Display usage information
-dirdotenv
-dirdotenv --help
-```
-
-### Load environment variables from current directory
-
-Note: this is not recommended to use directly - use hooks instead.
-
-
-```bash
-# Output export commands for your shell (use --export to prevent accidental exposure)
-eval "$(dirdotenv --export)"
-```
-
-### Load environment variables from a specific directory
-
-```bash
-eval "$(dirdotenv /path/to/directory --export)"
-```
-
-### Specify shell format
-
-```bash
-# For bash/zsh (default)
-eval "$(dirdotenv --export --shell bash)"
-
-# For fish shell
-dirdotenv --export --shell fish | source
-
-# For PowerShell
-Invoke-Expression ((dirdotenv --export --shell powershell) -join "`n")
-```
-
-### Execute a command with loaded environment variables
-
-```bash
-# Run a command with the environment variables loaded
-dirdotenv --exec python script.py
-dirdotenv --exec node app.js
-```
-
 
 ## Shell Integration
 
@@ -178,6 +122,53 @@ Once configured, the shell integration provides direnv-like behavior:
    $ cd ..  # leaving myproject tree
    dirdotenv: -API_KEY -DATABASE_URL -PORT
    ``` 
+
+## Advanced usage
+
+### Show help
+
+```bash
+# Display usage information
+dirdotenv
+dirdotenv --help
+```
+
+### Load environment variables from current directory
+
+Note: this is not recommended to use directly - use hooks instead.
+
+
+```bash
+# Output export commands for your shell (use --export to prevent accidental exposure)
+eval "$(dirdotenv --export)"
+```
+
+### Load environment variables from a specific directory
+
+```bash
+eval "$(dirdotenv /path/to/directory --export)"
+```
+
+### Specify shell format
+
+```bash
+# For bash/zsh (default)
+eval "$(dirdotenv --export --shell bash)"
+
+# For fish shell
+dirdotenv --export --shell fish | source
+
+# For PowerShell
+Invoke-Expression ((dirdotenv --export --shell powershell) -join "`n")
+```
+
+### Execute a command with loaded environment variables
+
+```bash
+# Run a command with the environment variables loaded
+dirdotenv --exec python script.py
+dirdotenv --exec node app.js
+```
 
 
 ## File Format Examples
