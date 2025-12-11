@@ -15,6 +15,7 @@ from dirdotenv.loader import (
     has_state_changed,
 )
 from dirdotenv.hooks import get_hook
+from dirdotenv.__version__ import __version__
 
 
 def load_command(args):
@@ -24,15 +25,15 @@ def load_command(args):
 
     # Get previous state from environment
     old_state = os.environ.get("_DIRDOTENV_STATE", None)
-    
+
     # Check if state has changed (directory or files)
     if not has_state_changed(old_state, current_dir):
         # No changes detected, output nothing
         return 0
-    
+
     # Compute new state
     new_state = compute_env_state(current_dir)
-    
+
     # Load with inheritance
     new_vars, loaded_dirs = load_env_with_inheritance(current_dir)
 
@@ -83,7 +84,7 @@ def load_command(args):
             output_lines.append(
                 "Remove-Item Env:_DIRDOTENV_KEYS -ErrorAction SilentlyContinue"
             )
-    
+
     # Store the new state
     if shell in ["bash", "zsh"]:
         # Escape single quotes in the state string for shell
@@ -124,6 +125,13 @@ Examples:
 For more information, see: https://github.com/alexeygrigorev/dirdotenv
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
     )
 
     # Check if first argument is a known subcommand
