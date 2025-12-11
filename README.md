@@ -30,6 +30,24 @@ eval "$(dirdotenv hook bash)"
 
 See [Shell Integration](#shell-integration) for more examples
 
+### Using uvx
+
+```bash
+# Run without installation
+eval "$(uvx dirdotenv hook bash)"
+```
+
+### Using uv
+
+To install it with uv as a tool:
+
+```bash
+uv tool install dirdotenv
+```
+
+Now it's available as `dirdotenv` command.
+
+
 ### Development
 
 When developing:
@@ -44,12 +62,8 @@ alias dirdotenv="uv run --project ~/git/dirdotenv/ python -m dirdotenv"
 eval "$(dirdotenv hook bash)"
 ```
 
-### Using uvx
 
-```bash
-# Run without installation
-eval "$(uvx dirdotenv hook bash)"
-```
+
 
 ## Usage
 
