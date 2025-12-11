@@ -9,6 +9,7 @@ and reloaded when:
 All tests pass, confirming the file change detection functionality works correctly.
 """
 
+import re
 import pytest
 import pexpect
 import time
@@ -20,6 +21,12 @@ def empty_test_dir(tmp_path):
     test_dir = tmp_path / "test_env"
     test_dir.mkdir()
     return test_dir
+
+
+def _strip_ansi_codes(text):
+    """Remove ANSI escape codes from text."""
+    ansi_escape = re.compile(r'\x1b\[[0-9;?]*[a-zA-Z]')
+    return ansi_escape.sub('', text)
 
 
 def check_var_value(child, prompt, var_name, expected_value):
@@ -39,9 +46,7 @@ def check_var_value(child, prompt, var_name, expected_value):
         # If printenv outputs nothing or just the command, variable is unset
         lines = [l.strip() for l in output.split('\n') if l.strip()]
         # Filter out the command itself, the marker, and ANSI escape codes
-        import re
-        ansi_escape = re.compile(r'\x1b\[[0-9;?]*[a-zA-Z]')
-        lines = [ansi_escape.sub('', l).strip() for l in lines]
+        lines = [_strip_ansi_codes(l).strip() for l in lines]
         lines = [l for l in lines if l and not l.startswith('printenv') and l != 'marker' and l != 'echo marker']
         print(f"  Filtered lines: {lines}")
         # If there are no remaining lines, variable is unset
@@ -130,7 +135,8 @@ def test_file_modification_detected(shell, empty_test_dir):
         "Initial value should be 'tomato'"
     
     # Modify the .env file
-    time.sleep(0.2)  # Ensure mtime changes
+    # Sleep to ensure filesystem mtime changes (some filesystems have 1-second granularity)
+    time.sleep(0.2)
     env_file.write_text("TOMATO=not-tomato\n")
     
     # Trigger prompt by running a command
@@ -178,7 +184,8 @@ def test_variable_removal_detected(shell, empty_test_dir):
     assert check_var_value(child, prompt, "LEMON", "lemon")
     
     # Remove LEMON from .env
-    time.sleep(0.2)  # Ensure mtime changes
+    # Sleep to ensure filesystem mtime changes (some filesystems have 1-second granularity)
+    time.sleep(0.2)
     env_file.write_text("TOMATO=tomato\n")
     
     # Trigger prompt by running a command
