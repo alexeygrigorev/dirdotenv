@@ -18,6 +18,26 @@ from dirdotenv.hooks import get_hook
 from dirdotenv.__version__ import __version__
 
 
+def get_invocation_command():
+    """Determine how dirdotenv was invoked."""
+    # Check for python -m dirdotenv usage
+    if sys.argv[0].endswith("__main__.py"):
+        return f"{sys.executable} -m dirdotenv"
+
+    # Check for uvx / uv tool run usage
+    # Heuristic: executable path contains uv/tools directory structure
+    # This covers the case when running via `uvx dirdotenv`
+    executable_path = sys.executable.replace(os.sep, "/")
+    if "/uv/tools/" in executable_path or "/.uv/tools/" in executable_path:
+        return "uvx dirdotenv"
+
+    # Default to dirdotenv (assumed to be in PATH)
+    # If the user invoked it via absolute path but not managed by uv,
+    # we could theoretically return sys.argv[0], but 'dirdotenv' is safer/cleaner
+    # for most installations unless explicitly requested otherwise.
+    return "dirdotenv"
+
+
 def load_command(args):
     """Handle the load command with inheritance and cleanup."""
     shell = args.shell
@@ -149,6 +169,11 @@ For more information, see: https://github.com/alexeygrigorev/dirdotenv
             choices=["bash", "zsh", "fish", "powershell"],
             help="Shell to generate hook for (bash, zsh, fish, or powershell)",
         )
+        hook_parser.add_argument(
+            "--cmd",
+            default=None,
+            help="Explicitly specify the dirdotenv command to use in the hook (overrides detection)",
+        )
 
         # Load subcommand (used internally by hooks)
         load_parser = subparsers.add_parser(
@@ -165,7 +190,8 @@ For more information, see: https://github.com/alexeygrigorev/dirdotenv
 
         # Handle hook command
         if args.command == "hook":
-            print(get_hook(args.shell))
+            cmd = args.cmd or get_invocation_command()
+            print(get_hook(args.shell, cmd))
             return 0
 
         # Handle load command

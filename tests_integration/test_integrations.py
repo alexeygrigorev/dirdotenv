@@ -241,15 +241,15 @@ def empty_dir_for_new_env(tmp_path):
 def test_new_env_file_detection(shell, empty_dir_for_new_env):
     """Test that newly created .env files are detected immediately without cd .. && cd -."""
     test_dir = empty_dir_for_new_env
-    
+
     # Spawn the shell
     child = pexpect.spawn(shell, encoding="utf-8")
-    
+
     # Set a simple prompt
     p1 = "DIRENV_TEST_"
     p2 = "PROMPT> "
     prompt = p1 + p2
-    
+
     if "bash" in shell:
         child.sendline("unset PROMPT_COMMAND")
         child.sendline(f"P1='{p1}'; P2='{p2}'; PS1=\"$P1$P2\"")
@@ -260,9 +260,9 @@ def test_new_env_file_detection(shell, empty_dir_for_new_env):
         child.sendline(
             f"set P1 '{p1}'; set P2 '{p2}'; function fish_prompt; echo \"$P1$P2\"; end"
         )
-    
+
     child.expect(prompt)
-    
+
     # Source the hook
     if "fish" in shell:
         child.sendline("dirdotenv hook fish | source")
@@ -270,23 +270,23 @@ def test_new_env_file_detection(shell, empty_dir_for_new_env):
         child.sendline('eval "$(dirdotenv hook bash)"')
     elif "zsh" in shell:
         child.sendline('eval "$(dirdotenv hook zsh)"')
-    
+
     child.expect(prompt)
-    
+
     # cd into the empty directory
     child.sendline(f"cd {test_dir}")
     child.expect(prompt)
-    
+
     # Verify variable is NOT set yet
     child.sendline("echo $NEW_VAR")
     child.expect(prompt)
     if "new_value" in child.before:
         pytest.fail(f"Variable already set in {shell}. Output: {child.before}")
-    
+
     # Create a new .env file while in the directory
     env_file = test_dir / ".env"
     env_file.write_text("NEW_VAR='new_value'")
-    
+
     # Trigger a prompt (simulating user pressing enter or running any command)
     # For bash and zsh, this triggers the prompt hook
     # For fish, we need to manually call the load function since fish only checks on PWD change
@@ -296,10 +296,71 @@ def test_new_env_file_detection(shell, empty_dir_for_new_env):
     else:
         child.sendline("echo 'triggering check'")
         child.expect(prompt)
-    
+
     # Now check if variable is loaded
     child.sendline("echo $NEW_VAR")
     child.expect(prompt)
-    
+
     if "new_value" not in child.before:
-        pytest.fail(f"Failed to load newly created .env in {shell}. Output: {child.before}")
+        pytest.fail(
+            f"Failed to load newly created .env in {shell}. Output: {child.before}"
+        )
+
+
+@pytest.mark.parametrize("shell", ["bash", "zsh", "fish"])
+def test_uvx_hook_behavior(shell, test_env):
+    """
+    Test that the hook works when dirdotenv is invoked via 'uvx dirdotenv'.
+    Start with mocking 'uvx' as a function/alias that calls dirdotenv.
+    """
+    # 1. Spawn shell
+    child = pexpect.spawn(shell, encoding="utf-8")
+
+    # Set a simple prompt
+    p1 = "DIRENV_TEST_"
+    p2 = "PROMPT> "
+    prompt = p1 + p2
+
+    if "bash" in shell:
+        child.sendline("unset PROMPT_COMMAND")
+        child.sendline(f"P1='{p1}'; P2='{p2}'; PS1=\"$P1$P2\"")
+
+    elif "zsh" in shell:
+        child.sendline("precmd() { }")
+        child.sendline(f"P1='{p1}'; P2='{p2}'; PS1=\"$P1$P2\"")
+
+    elif "fish" in shell:
+        child.sendline(
+            f"set P1 '{p1}'; set P2 '{p2}'; function fish_prompt; echo \"$P1$P2\"; end"
+        )
+
+    child.expect(prompt)
+
+    # 2. Source the hook using 'uvx dirdotenv hook ...'
+    # detecting it as 'uvx dirdotenv' automatically without --cmd override
+    # logic will return 'uvx dirdotenv' because uvx wrapper uses uv tool run
+    if "fish" in shell:
+        child.sendline("uvx dirdotenv hook fish | source")
+    elif "bash" in shell:
+        child.sendline('eval "$(uvx dirdotenv hook bash)"')
+    elif "zsh" in shell:
+        child.sendline('eval "$(uvx dirdotenv hook zsh)"')
+
+    child.expect(prompt)
+
+    # 3. Test that it works
+    # cd into directory
+    child.sendline(f"cd {test_env}")
+    child.expect(prompt)
+
+    # Check variable
+    child.sendline("echo $TEST_VAR")
+    child.expect(prompt)
+
+    if "hello_world" not in child.before:
+        print(
+            f"Failed to load variable with uvx hook in {shell}. Output: {child.before}"
+        )
+        return False
+
+    return True

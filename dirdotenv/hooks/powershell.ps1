@@ -1,10 +1,14 @@
 function global:_dirdotenv_load {
     # Call dirdotenv load - it handles state tracking internally
-    if (Get-Command dirdotenv -ErrorAction SilentlyContinue) {
-        $output = (dirdotenv load --shell powershell 2>&1) -join "`n"
-        if ($LASTEXITCODE -eq 0 -and $output) {
-            Invoke-Expression $output
-        }
+    $cmd = "{{cmd}}"
+    # Execute the command. Note: if cmd is complex, proper parsing might be needed, 
+    # but generic invocation of string in expression works for simple cases.
+    # For "uvx dirdotenv load ...", it needs to be executed as a command.
+    
+    # Using Invoke-Expression for the command execution to handle space-separated arguments in cmd
+    $output = (Invoke-Expression "$cmd load --shell powershell 2>&1") -join "`n"
+    if ($LASTEXITCODE -eq 0 -and $output) {
+        Invoke-Expression $output
     }
 }
 

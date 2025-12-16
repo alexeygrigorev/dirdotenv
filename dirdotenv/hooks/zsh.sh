@@ -1,10 +1,10 @@
 _dirdotenv_load() {
     # Call dirdotenv load - it handles state tracking internally
-    if command -v dirdotenv &> /dev/null; then
-        local output
-        if output=$(dirdotenv load --shell zsh 2>&1); then
-            eval "$output"
-        fi
+    local cmd="{{cmd}}"
+
+    local output
+    if output=$($cmd load --shell zsh 2>&1); then
+        eval "$output"
     fi
 }
 
