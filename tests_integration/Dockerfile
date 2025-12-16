@@ -4,7 +4,8 @@ FROM python:3.11-slim-bookworm
 RUN apt-get update && apt-get install -y \
     bash \
     zsh \
-    fish \
+    fish
+
 # Install uv directly from the official image
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
